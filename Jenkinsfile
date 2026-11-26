@@ -123,10 +123,25 @@ pipeline {
 
         stage('Despliegue') {
             steps {
-                echo 'Verificando aplicacion desplegada'
-                sh '''
-                    docker compose ps
-                '''
+             echo 'Verificando aplicacion desplegada'
+
+        sh '''
+            set -e
+
+            echo "Verificando contenedor SecureDev..."
+
+            docker inspect -f '{{.State.Running}}' securedev-estudiante-app-1 | grep -q true
+
+            echo "Verificando respuesta HTTP..."
+
+            docker run --rm \
+                --network securedev-net \
+                --entrypoint python \
+                securedev-ci:${BUILD_NUMBER} \
+                -c "import urllib.request; r=urllib.request.urlopen('http://securedev-estudiante-app-1:8000/', timeout=10); print('HTTP:', r.status); assert r.status == 200"
+
+            echo "Aplicacion desplegada y respondiendo correctamente"
+        '''
             }
         }
     }
